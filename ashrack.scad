@@ -26,6 +26,10 @@ tray_width = 150; // [10:1:220]
 // Rack side this module mounts to
 side = "left"; // [left, right]
 
+// Mounting ear thickness, as a multiple of the panel thickness. Measured
+// front to back from the panel face, so 1x leaves no ear material.
+ear_thickness = 5; // [1:1:8]
+
 /* [Hidden] */
 
 $fn = 64;
@@ -40,14 +44,23 @@ RACK_CLEAR_WIDTH = 450.8;
 PANEL_THICKNESS = 3;
 PANEL_HEIGHT_CLEARANCE = 0.8;
 RAIL_THICKNESS = 3;
-FLANGE_WIDTH = 15;
-FLANGE_DEPTH = 9;
 
-// Rack mounting hole geometry.
+// The ear bridges the mounting edge to the tray frame, so its width follows the
+// tray offset and always meets the tray container. Only its thickness is scaled
+// by the user (front to back, as a multiple of the panel).
+EAR_THICKNESS = ear_thickness * PANEL_THICKNESS;
+EAR_EDGE_MARGIN = 3;
+
+// Rack mounting hole geometry. The diameter is a standard screw clearance - M5
+// is the common 19" rack screw (M6 clearance is 6.4, 10-32 is 4.9).
 MOUNT_HOLE_D = 5.2;
 MOUNT_HOLE_X = (RACK_WIDTH - RACK_MOUNT_HOLE_SPACING) / 2;
 MOUNT_HOLE_TOP = 15.875;
 MOUNT_HOLE_BOTTOM = RACK_UNIT - 15.875;
+
+// Hole depth follows the ear thickness: the hole passes through the panel and
+// through whatever ear material sits behind it.
+MOUNT_HOLE_DEPTH = EAR_THICKNESS;
 
 // Tray fit.
 TRAY_EDGE_MARGIN = 5;
@@ -74,8 +87,12 @@ module module_body(units, offset, depth, width) {
     opening_h = h - 2 * TRAY_EDGE_MARGIN;
     opening_w = width + 2 * TRAY_FIT_CLEARANCE;
 
-    assert(offset >= FLANGE_WIDTH + RAIL_THICKNESS,
-        "tray_offset is too small: the tray has to clear the rack mounting flange");
+    // Ear reaches from the mounting edge to the outside of the tray frame, so
+    // the two always meet whatever the tray offset is.
+    ear_width = offset - RAIL_THICKNESS;
+
+    assert(ear_width >= MOUNT_HOLE_X + MOUNT_HOLE_D / 2 + EAR_EDGE_MARGIN,
+        "tray_offset is too small: the mounting ear cannot reach the tray frame and still carry the rack hole");
     assert(offset + opening_w + RAIL_THICKNESS <= MODULE_WIDTH,
         "tray_offset + tray_width is too large to fit a half rack module");
     assert(width > 0 && depth > 0,
@@ -87,9 +104,11 @@ module module_body(units, offset, depth, width) {
             // Front panel.
             cube([MODULE_WIDTH, PANEL_THICKNESS, h]);
 
-            // Rack mounting flange, behind the panel on the mounting edge.
-            translate([0, PANEL_THICKNESS, 0])
-                cube([FLANGE_WIDTH, FLANGE_DEPTH, h]);
+            // Rack mounting ear, behind the panel on the mounting edge. It spans
+            // the gap between the mounting edge and the tray frame.
+            if (EAR_THICKNESS > PANEL_THICKNESS)
+                translate([0, PANEL_THICKNESS, 0])
+                    cube([ear_width, EAR_THICKNESS - PANEL_THICKNESS, h]);
 
             // Tray support sleeve behind the opening.
             translate([
@@ -109,11 +128,12 @@ module module_body(units, offset, depth, width) {
         translate([offset, PANEL_THICKNESS - 1, TRAY_EDGE_MARGIN])
             cube([opening_w, depth + 2, opening_h]);
 
-        // Rack mounting holes.
+        // Rack mounting holes, drilled through the full ear thickness. The +2
+        // is a boolean overshoot so the hole cuts cleanly out of both faces.
         for (z = mount_hole_positions(units))
-            translate([MOUNT_HOLE_X, PANEL_THICKNESS - 1, z])
+            translate([MOUNT_HOLE_X, -1, z])
                 rotate([-90, 0, 0])
-                cylinder(h = FLANGE_DEPTH + 2, d = MOUNT_HOLE_D);
+                cylinder(h = MOUNT_HOLE_DEPTH + 2, d = MOUNT_HOLE_D);
     }
 }
 
