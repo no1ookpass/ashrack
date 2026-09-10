@@ -20,8 +20,8 @@ tray_offset = 20; // [0:1:220]
 // Tray depth (mm)
 tray_depth = 150; // [10:1:600]
 
-// Tray width (mm)
-tray_width = 150; // [10:1:220]
+// Tray width (mm). Zero makes this a blank panel: no opening, no tray frame.
+tray_width = 150; // [0:1:220]
 
 // Rack side this module mounts to
 side = "left"; // [left, right]
@@ -80,6 +80,11 @@ MOUNT_HOLE_DEPTH = EAR_THICKNESS;
 // Tray fit.
 TRAY_EDGE_MARGIN = 5;
 TRAY_FIT_CLEARANCE = 0.4;
+
+// Below this tray width the channel is too narrow to frame - the join fillet
+// alone would fill it in - so anything smaller prints as a blank panel instead.
+// Keeps the width slider usable all the way down to 0.
+MIN_TRAY_WIDTH = 10;
 
 // Nominal spacing of the criss-cross cells along the tray depth. Cells are kept
 // even along the depth so the lattice repeats uniformly.
@@ -181,16 +186,21 @@ module module_body(units, offset, depth, width) {
     opening_h = h - 2 * TRAY_EDGE_MARGIN;
     opening_w = width + 2 * TRAY_FIT_CLEARANCE;
 
+    // Anything from zero up to the minimum prints as a blank panel: nothing is
+    // going to slide into a channel that narrow anyway, and framing it would
+    // just fill the channel in with fillet material.
+    trays = width >= MIN_TRAY_WIDTH;
+
     // Ear reaches from the mounting edge to the outside of the tray frame, so
     // the two always meet whatever the tray offset is.
     ear_width = offset - RAIL_THICKNESS;
 
     assert(ear_width >= MOUNT_HOLE_X + MOUNT_HOLE_D / 2 + EAR_EDGE_MARGIN,
-        "tray_offset is too small: the mounting ear cannot reach the tray frame and still carry the rack hole");
-    assert(offset + opening_w + RAIL_THICKNESS <= MODULE_WIDTH,
+        "tray_offset is too small: the mounting ear has to be wide enough to carry the rack hole");
+    assert(!trays || offset + opening_w + RAIL_THICKNESS <= MODULE_WIDTH,
         "tray_offset + tray_width is too large to fit a half rack module");
-    assert(width > 0 && depth > 0,
-        "tray_width and tray_depth must both be greater than zero");
+    assert(width >= 0, "tray_width cannot be negative");
+    assert(depth > 0, "tray_depth must be greater than zero");
     assert(opening_h > 0, "module_units is too small to fit a tray");
 
     difference() {
@@ -204,18 +214,22 @@ module module_body(units, offset, depth, width) {
                 translate([0, PANEL_THICKNESS, 0])
                     cube([ear_width, EAR_THICKNESS - PANEL_THICKNESS, h]);
 
-            // Tray support frame behind the opening.
-            tray_frame(offset, depth, opening_w, opening_h);
+            // Tray support frame behind the opening, unless this is a blank.
+            if (trays)
+                tray_frame(offset, depth, opening_w, opening_h);
         }
 
-        // Tray opening through the front panel.
-        translate([offset, -1, TRAY_EDGE_MARGIN])
-            cube([opening_w, PANEL_THICKNESS + 2, opening_h]);
+        // Tray opening through the front panel and the channel keep-out behind
+        // it. Both are skipped on a blank, which leaves the panel solid.
+        if (trays) {
+            translate([offset, -1, TRAY_EDGE_MARGIN])
+                cube([opening_w, PANEL_THICKNESS + 2, opening_h]);
 
-        // Tray channel keep-out. The framed container is open anyway, but this
-        // guarantees the slide path stays clear for the tray.
-        translate([offset, PANEL_THICKNESS - 1, TRAY_EDGE_MARGIN])
-            cube([opening_w, depth + 2, opening_h]);
+            // The framed container is open anyway, but this guarantees the
+            // slide path stays clear for the tray.
+            translate([offset, PANEL_THICKNESS - 1, TRAY_EDGE_MARGIN])
+                cube([opening_w, depth + 2, opening_h]);
+        }
 
         // Rack mounting holes, drilled through the full ear thickness. The +2
         // is a boolean overshoot so the hole cuts cleanly out of both faces.
