@@ -30,6 +30,9 @@ side = "left"; // [left, right]
 // front to back from the panel face, so 1x leaves no ear material.
 ear_thickness = 5; // [1:1:8]
 
+// Rack screw holes per rack unit: 1 centre, 2 outer pair, 3 all three
+screw_holes = 3; // [1:1:3]
+
 /* [Hidden] */
 
 $fn = 64;
@@ -55,8 +58,20 @@ EAR_EDGE_MARGIN = 3;
 // is the common 19" rack screw (M6 clearance is 6.4, 10-32 is 4.9).
 MOUNT_HOLE_D = 5.2;
 MOUNT_HOLE_X = (RACK_WIDTH - RACK_MOUNT_HOLE_SPACING) / 2;
-MOUNT_HOLE_TOP = 15.875;
-MOUNT_HOLE_BOTTOM = RACK_UNIT - 15.875;
+
+// EIA-310 rack holes sit this far above the unit's lower edge: the outer pair
+// close to the panel edges, the middle one on the unit centre line. 15.875 is
+// the spacing between holes within a group, not a position.
+MOUNT_HOLE_CENTRE = 22.225;
+MOUNT_HOLE_OUTER = [6.35, 38.1];
+MOUNT_HOLE_ALL = [6.35, 22.225, 38.1];
+MOUNT_HOLE_EDGE_MARGIN = 4;
+
+// Hole offsets within a unit for the requested number of holes per unit.
+function mount_hole_offsets(per_unit) =
+    per_unit <= 1 ? [MOUNT_HOLE_CENTRE]
+    : per_unit == 2 ? MOUNT_HOLE_OUTER
+    : MOUNT_HOLE_ALL;
 
 // Hole depth follows the ear thickness: the hole passes through the panel and
 // through whatever ear material sits behind it.
@@ -81,13 +96,14 @@ MODULE_WIDTH = RACK_CLEAR_WIDTH / 2;
 // Panel height for a given number of rack units.
 function module_height(units) = units * RACK_UNIT - PANEL_HEIGHT_CLEARANCE;
 
-// Standard mounting hole heights for a panel of the given rack unit count.
-function mount_hole_positions(units) =
-    let (h = module_height(units))
+// Standard mounting hole heights for a panel of the given rack unit count and
+// hole count. The panel is centred in its rack space, so the pattern shifts too.
+function mount_hole_positions(units, per_unit) =
+    let (h = module_height(units), space_bottom = -PANEL_HEIGHT_CLEARANCE / 2)
     [ for (u = [0 : units - 1])
-        for (z = [MOUNT_HOLE_TOP, MOUNT_HOLE_BOTTOM])
-            let (zz = u * RACK_UNIT + z)
-            if (zz > MOUNT_HOLE_D && zz < h - MOUNT_HOLE_D)
+        for (offset = mount_hole_offsets(per_unit))
+            let (zz = u * RACK_UNIT + offset + space_bottom)
+            if (zz > MOUNT_HOLE_EDGE_MARGIN && zz < h - MOUNT_HOLE_EDGE_MARGIN)
                 zz ];
 
 // Radius of the concave fillet applied where bars join and cross. This is what
@@ -203,7 +219,7 @@ module module_body(units, offset, depth, width) {
 
         // Rack mounting holes, drilled through the full ear thickness. The +2
         // is a boolean overshoot so the hole cuts cleanly out of both faces.
-        for (z = mount_hole_positions(units))
+        for (z = mount_hole_positions(units, screw_holes))
             translate([MOUNT_HOLE_X, -1, z])
                 rotate([-90, 0, 0])
                 cylinder(h = MOUNT_HOLE_DEPTH + 2, d = MOUNT_HOLE_D);
