@@ -9,6 +9,8 @@
 //   Y = 0 at the front face, growing backwards into the rack
 //   Z = 0 at the bottom of the panel
 
+include <ashrack_common.scad>
+
 /* [Module] */
 
 // Module height in rack units
@@ -34,18 +36,6 @@ ear_thickness = 5; // [1:1:8]
 screw_holes = 3; // [1:1:3]
 
 /* [Hidden] */
-
-$fn = 64;
-
-// Standard 19" EIA rack dimensions - fixed, do not customise.
-RACK_UNIT = 44.45;
-RACK_WIDTH = 482.6;
-RACK_MOUNT_HOLE_SPACING = 465.1;
-
-// Module material and stand-offs.
-PANEL_THICKNESS = 3;
-PANEL_HEIGHT_CLEARANCE = 0.8;
-RAIL_THICKNESS = 3;
 
 // The ear bridges the mounting edge to the tray frame, so its width follows the
 // tray offset and always meets the tray container. Only its thickness is scaled
@@ -76,10 +66,6 @@ function mount_hole_offsets(per_unit) =
 // through whatever ear material sits behind it.
 MOUNT_HOLE_DEPTH = EAR_THICKNESS;
 
-// Tray fit.
-TRAY_EDGE_MARGIN = 5;
-TRAY_FIT_CLEARANCE = 0.4;
-
 // Joiner. Two tabs on the non-mounting edge, stacked in Z with a gap of one tab
 // thickness between them, each with a single bolt hole through its middle. The
 // two hands stack their pairs one thickness apart, so a left and a right module
@@ -93,26 +79,9 @@ JOINER_SPINE = RAIL_THICKNESS;              // rib at the root tying the tabs in
 JOINER_BULKHEAD = JOINER_INSET + JOINER_SPINE;   // total room the joiner needs
 JOINER_TAB_ROUND = 1;                       // lead-in round on the tab edges
 
-// Below this tray width the channel is too narrow to frame - the join fillet
-// alone would fill it in - so anything smaller prints as a blank panel instead.
-// Keeps the width slider usable all the way down to 0.
-MIN_TRAY_WIDTH = 10;
-
-// Nominal spacing of the criss-cross cells along the tray depth. Cells are kept
-// even along the depth so the lattice repeats uniformly.
-FRAME_PITCH = 70;
-
-// Width of the criss-cross bars as a multiple of the rail thickness. The bars
-// spread sideways in the face they lie in but keep their thickness across it, so
-// the frame gets fatter without getting any taller.
-FRAME_BAR_SPREAD = 2;
-
 // Half a 19" rack. Two of these meet flush at the centre of the rack, which is
 // what lets the joiner tabs line up on each other.
 MODULE_WIDTH = RACK_WIDTH / 2;
-
-// Panel height for a given number of rack units.
-function module_height(units) = units * RACK_UNIT - PANEL_HEIGHT_CLEARANCE;
 
 // Standard mounting hole heights for a panel of the given rack unit count and
 // hole count. The panel is centred in its rack space, so the pattern shifts too.
@@ -124,44 +93,12 @@ function mount_hole_positions(units, per_unit) =
             if (zz > MOUNT_HOLE_EDGE_MARGIN && zz < h - MOUNT_HOLE_EDGE_MARGIN)
                 zz ];
 
-// Radius of the concave fillet applied where bars join and cross. This is what
-// makes a crossing read as ")(" instead of "><".
-JOIN_FILLET = 2;
-
 // One face of the tray frame, drawn flat so the joins can be filleted in 2D.
-// u runs along the tray depth, v runs across the face. A closing pass (offset out
-// then back in) fills the concave joins, so crossings and rail junctions come out
-// as scooped curves while the bars themselves stay flat straps: the fillet only
-// ever moves material in the face plane, so it adds no height and cannot grow
-// into the tray channel.
+// u runs along the tray depth, v runs across the face. The fillet only ever moves
+// material in the face plane, so it adds no height and cannot grow into the tray
+// channel.
 module face_pattern(depth, span, rise) {
-    r = RAIL_THICKNESS;
-    cells = max(1, round(depth / FRAME_PITCH));
-    cell = depth / cells;
-    bar_length = sqrt(cell * cell + rise * rise) + r;
-    angle = atan2(rise, cell);
-
-    // Trimmed to the face so the scooped joins and the bar overshoot cannot poke
-    // past the rails or the ends of the frame.
-    intersection() {
-        offset(r = -JOIN_FILLET, $fn = 32)
-            offset(r = JOIN_FILLET, $fn = 32)
-                union() {
-                    // Edge rails, running the full tray depth.
-                    for (v = [1, -1])
-                        translate([0, v * (span - r) / 2])
-                            square([depth, r], center = true);
-
-                    // Criss-cross bars, braced across the face.
-                    for (i = [0 : cells - 1])
-                        for (side = [1, -1])
-                            translate([cell * (i + 0.5) - depth / 2, 0])
-                                rotate(side * angle)
-                                    square([bar_length, FRAME_BAR_SPREAD * r], center = true);
-                }
-
-        square([depth, span], center = true);
-    }
+    braced_panel(depth, span, rise);
 }
 
 // Open tray container: four corner rails braced by a criss-cross lattice on each
