@@ -66,6 +66,15 @@ MOUNT_HOLE_DEPTH = EAR_THICKNESS;
 TRAY_EDGE_MARGIN = 5;
 TRAY_FIT_CLEARANCE = 0.4;
 
+// Nominal spacing of the criss-cross cells along the tray depth. Cells are kept
+// even along the depth so the lattice repeats uniformly.
+FRAME_PITCH = 70;
+
+// Width of the criss-cross bars as a multiple of the rail thickness. The bars
+// spread sideways in the face they lie in but keep their thickness across it, so
+// the frame gets fatter without getting any taller.
+FRAME_BAR_SPREAD = 2;
+
 // A half rack module occupies half of the clear rack opening.
 MODULE_WIDTH = RACK_CLEAR_WIDTH / 2;
 
@@ -80,6 +89,75 @@ function mount_hole_positions(units) =
             let (zz = u * RACK_UNIT + z)
             if (zz > MOUNT_HOLE_D && zz < h - MOUNT_HOLE_D)
                 zz ];
+
+// Radius of the concave fillet applied where bars join and cross. This is what
+// makes a crossing read as ")(" instead of "><".
+JOIN_FILLET = 2;
+
+// One face of the tray frame, drawn flat so the joins can be filleted in 2D.
+// u runs along the tray depth, v runs across the face. A closing pass (offset out
+// then back in) fills the concave joins, so crossings and rail junctions come out
+// as scooped curves while the bars themselves stay flat straps: the fillet only
+// ever moves material in the face plane, so it adds no height and cannot grow
+// into the tray channel.
+module face_pattern(depth, span, rise) {
+    r = RAIL_THICKNESS;
+    cells = max(1, round(depth / FRAME_PITCH));
+    cell = depth / cells;
+    bar_length = sqrt(cell * cell + rise * rise) + r;
+    angle = atan2(rise, cell);
+
+    // Trimmed to the face so the scooped joins and the bar overshoot cannot poke
+    // past the rails or the ends of the frame.
+    intersection() {
+        offset(r = -JOIN_FILLET, $fn = 32)
+            offset(r = JOIN_FILLET, $fn = 32)
+                union() {
+                    // Edge rails, running the full tray depth.
+                    for (v = [1, -1])
+                        translate([0, v * (span - r) / 2])
+                            square([depth, r], center = true);
+
+                    // Criss-cross bars, braced across the face.
+                    for (i = [0 : cells - 1])
+                        for (side = [1, -1])
+                            translate([cell * (i + 0.5) - depth / 2, 0])
+                                rotate(side * angle)
+                                    square([bar_length, FRAME_BAR_SPREAD * r], center = true);
+                }
+
+        square([depth, span], center = true);
+    }
+}
+
+// Open tray container: four corner rails braced by a criss-cross lattice on each
+// face, instead of solid walls. The frame assumes nothing about what gets slid
+// into it, so it stays open and uses minimal material.
+module tray_frame(offset, depth, opening_w, opening_h) {
+    r = RAIL_THICKNESS;
+    y0 = PANEL_THICKNESS;
+    x0 = offset - r;
+    z0 = TRAY_EDGE_MARGIN - r;
+    frame_w = opening_w + 2 * r;
+    frame_h = opening_h + 2 * r;
+    mid_y = y0 + depth / 2;
+
+    // Side faces: pattern lies in the YZ plane, extruded across X. The pattern is
+    // symmetric across v, so the mirrored v axis is harmless.
+    for (x = [x0 + r / 2, x0 + frame_w - r / 2])
+        translate([x, mid_y, z0 + frame_h / 2])
+            rotate([0, 0, 90])
+                rotate([90, 0, 0])
+                    linear_extrude(height = r, center = true)
+                        face_pattern(depth, frame_h, opening_h);
+
+    // Top and bottom faces: pattern lies in the XY plane, extruded across Z.
+    for (z = [z0 + r / 2, z0 + frame_h - r / 2])
+        translate([x0 + frame_w / 2, mid_y, z])
+            rotate([0, 0, 90])
+                linear_extrude(height = r, center = true)
+                    face_pattern(depth, frame_w, opening_w);
+}
 
 // One handed module, built with its mounting edge on X = 0.
 module module_body(units, offset, depth, width) {
@@ -110,21 +188,16 @@ module module_body(units, offset, depth, width) {
                 translate([0, PANEL_THICKNESS, 0])
                     cube([ear_width, EAR_THICKNESS - PANEL_THICKNESS, h]);
 
-            // Tray support sleeve behind the opening.
-            translate([
-                offset - RAIL_THICKNESS,
-                PANEL_THICKNESS,
-                TRAY_EDGE_MARGIN - RAIL_THICKNESS
-            ])
-                cube([opening_w + 2 * RAIL_THICKNESS, depth, opening_h + 2 * RAIL_THICKNESS]);
+            // Tray support frame behind the opening.
+            tray_frame(offset, depth, opening_w, opening_h);
         }
 
         // Tray opening through the front panel.
         translate([offset, -1, TRAY_EDGE_MARGIN])
             cube([opening_w, PANEL_THICKNESS + 2, opening_h]);
 
-        // Tray channel. Open at the front and at the back so the tray slides
-        // through the panel and is stopped by its own front plate.
+        // Tray channel keep-out. The framed container is open anyway, but this
+        // guarantees the slide path stays clear for the tray.
         translate([offset, PANEL_THICKNESS - 1, TRAY_EDGE_MARGIN])
             cube([opening_w, depth + 2, opening_h]);
 
