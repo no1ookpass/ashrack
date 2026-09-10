@@ -32,6 +32,15 @@ back_style = "skeleton"; // [solid, slits, skeleton]
 top_style = "skeleton"; // [solid, slits, skeleton]
 top_removable = false;
 
+// Handles on the front face, and which side of it they go on. The sides are
+// named from the module's mounting edge: "rail" is the edge that screws to the
+// rack, "centre" faces the middle of the rack. Left and right flip with the
+// hand, so they are no good as names.
+handle_sides = "none"; // [none, rail, centre, both]
+
+// Handle shape: a half donut pull, or a knob
+handle_type = "loop"; // [loop, knob]
+
 // Which part to build. With a removable top the roof is its own part, so print
 // the body, then the top.
 part = "body"; // [body, top]
@@ -48,6 +57,25 @@ SLIT_BORDER = 8;
 
 // Keep cut-outs this far inside the front face.
 FRONT_CUTOUT_MARGIN = 2;
+
+// Handles. They sit on the front face and stand out in front of the rack, so
+// they never have to pass through the opening; only the feet bite into the face.
+HANDLE_INSET = 20;              // handle centre, in from the tray's edge
+HANDLE_LOOP_OPENING = 24;       // across the loop, between its feet
+HANDLE_TUBE = 3;                // half donut tube radius
+HANDLE_FOOT_D = 9;              // pad where the loop lands on the face
+HANDLE_FOOT_T = 2;
+HANDLE_BITE = 0.6;              // how far the feet sink into the face
+HANDLE_KNOB_D = 16;
+HANDLE_STEM_D = 10;
+HANDLE_KNOB_H = 12;             // how far the knob stands off the face
+
+// Handle sides, indexed 0 = rail, 1 = centre.
+function handle_on(index) =
+    handle_sides == "both" ? true
+    : handle_sides == "none" ? false
+    : handle_sides == "rail" ? index == 0
+    : index == 1;
 
 // Removable top: M3 screws, self-tapping into printed bosses. The top and its
 // screws stay inside the tray's outer envelope, or the tray would jam in the
@@ -135,6 +163,51 @@ module wall_profile(u_len, v_len, style) {
         square([u_len, v_len], center = true);
 }
 
+// Half donut pull: a loop of round bar standing off the face, feet flush with it
+// so it reads as a drawer bail.
+module loop_handle() {
+    R = HANDLE_LOOP_OPENING / 2;
+
+    // Feet, sunk a little into the face so they fuse to it.
+    for (x = [-R, R])
+        translate([x, HANDLE_BITE, 0])
+            rotate([90, 0, 0])
+                cylinder(d = HANDLE_FOOT_D, h = HANDLE_FOOT_T + HANDLE_BITE, $fn = 32);
+
+    // The half torus itself, standing out in front of the face.
+    rotate([180, 0, 0])
+        rotate_extrude(angle = 180, $fn = 64)
+            translate([R, 0])
+                circle(r = HANDLE_TUBE, $fn = 24);
+}
+
+// Knob on a short stem with a domed end. Prints as-is, no overhang.
+module knob_handle() {
+    straight = HANDLE_KNOB_H - HANDLE_KNOB_D / 2;
+
+    translate([0, HANDLE_BITE, 0])
+        rotate([90, 0, 0]) {
+            cylinder(d = HANDLE_STEM_D, h = straight + HANDLE_BITE, $fn = 32);
+            translate([0, 0, straight + HANDLE_BITE])
+                sphere(d = HANDLE_KNOB_D, $fn = 32);
+        }
+}
+
+// Handles where the user asked for them.
+module handles() {
+    for (i = [0, 1])
+        if (handle_on(i))
+            translate([
+                i == 0 ? HANDLE_INSET : TRAY_W - HANDLE_INSET,
+                0,
+                TRAY_H / 2
+            ])
+                if (handle_type == "knob")
+                    knob_handle();
+                else
+                    loop_handle();
+}
+
 // A corner boss for a top screw, fused to the walls and blind-drilled so the
 // screw taps into it.
 module top_boss(x, y) {
@@ -213,6 +286,9 @@ module tray() {
                     rotate([0, 0, 90])
                         linear_extrude(height = WALL_THICKNESS, center = true)
                             wall_profile(TRAY_D, TRAY_W - 2 * WALL_THICKNESS, top_style);
+
+            // Handles on the front face.
+            handles();
 
             // Bosses the removable top screws into.
             if (top_removable)
