@@ -41,7 +41,6 @@ $fn = 64;
 RACK_UNIT = 44.45;
 RACK_WIDTH = 482.6;
 RACK_MOUNT_HOLE_SPACING = 465.1;
-RACK_CLEAR_WIDTH = 450.8;
 
 // Module material and stand-offs.
 PANEL_THICKNESS = 3;
@@ -81,6 +80,19 @@ MOUNT_HOLE_DEPTH = EAR_THICKNESS;
 TRAY_EDGE_MARGIN = 5;
 TRAY_FIT_CLEARANCE = 0.4;
 
+// Joiner. Two tabs on the non-mounting edge, stacked in Z with a gap of one tab
+// thickness between them, each with a single bolt hole through its middle. The
+// two hands stack their pairs one thickness apart, so a left and a right module
+// interleave into a four tab stack with one bolt through it. The bolt runs
+// vertically, so it carries the load directly.
+JOINER_INSET = 25;                          // room the tabs take up inside the edge
+JOINER_REACH = 25;                          // how far they run out past it
+JOINER_PLATE_THICKNESS = RAIL_THICKNESS;    // tab thickness, and the gap in the pair
+JOINER_PLATE_DEPTH = 20;                    // tab depth front to back
+JOINER_SPINE = RAIL_THICKNESS;              // rib at the root tying the tabs in
+JOINER_BULKHEAD = JOINER_INSET + JOINER_SPINE;   // total room the joiner needs
+JOINER_TAB_ROUND = 1;                       // lead-in round on the tab edges
+
 // Below this tray width the channel is too narrow to frame - the join fillet
 // alone would fill it in - so anything smaller prints as a blank panel instead.
 // Keeps the width slider usable all the way down to 0.
@@ -95,8 +107,9 @@ FRAME_PITCH = 70;
 // the frame gets fatter without getting any taller.
 FRAME_BAR_SPREAD = 2;
 
-// A half rack module occupies half of the clear rack opening.
-MODULE_WIDTH = RACK_CLEAR_WIDTH / 2;
+// Half a 19" rack. Two of these meet flush at the centre of the rack, which is
+// what lets the joiner tabs line up on each other.
+MODULE_WIDTH = RACK_WIDTH / 2;
 
 // Panel height for a given number of rack units.
 function module_height(units) = units * RACK_UNIT - PANEL_HEIGHT_CLEARANCE;
@@ -180,8 +193,43 @@ module tray_frame(offset, depth, opening_w, opening_h) {
                     face_pattern(depth, frame_w, opening_w);
 }
 
+// The two interleaving tabs on the non-mounting edge, plus the rib that ties
+// them back to the panel. Both hands carry a pair; because the right hand's pair
+// sits one thickness higher, a left and a right module side by side form a four
+// tab stack with a single vertical bolt through it.
+module joiner_tabs(units, rack_side) {
+    h = module_height(units);
+    t = JOINER_PLATE_THICKNESS;
+    x0 = MODULE_WIDTH - JOINER_INSET;
+    z_base = h / 2 - 2 * t;
+    z_shift = rack_side == "right" ? t : 0;
+
+    // Root rib: without it the upper tab of each pair would be left floating. It
+    // has to sit inboard of the tabs, or it would fill the other hand's slots.
+    translate([x0 - JOINER_SPINE, PANEL_THICKNESS, z_base])
+        cube([JOINER_SPINE, JOINER_PLATE_DEPTH, 4 * t]);
+
+    for (i = [0, 1])
+        translate([x0, PANEL_THICKNESS, z_base + t / 2 + z_shift + 2 * i * t])
+            difference() {
+                // Drawn as a cross-section and extruded, so the corners facing
+                // along the tab come out rounded: those are the edges that meet
+                // the other hand's tabs, and rounding them helps them feed in.
+                rotate([-90, 0, 0])
+                    linear_extrude(height = JOINER_PLATE_DEPTH)
+                        translate([JOINER_INSET, 0])
+                            offset(r = JOINER_TAB_ROUND)
+                                offset(r = -JOINER_TAB_ROUND)
+                                    square([JOINER_INSET + JOINER_REACH, t], center = true);
+
+                // One bolt hole through the middle of every tab.
+                translate([JOINER_INSET, JOINER_PLATE_DEPTH / 2, -t / 2 - 1])
+                    cylinder(h = t + 2, d = MOUNT_HOLE_D);
+            }
+}
+
 // One handed module, built with its mounting edge on X = 0.
-module module_body(units, offset, depth, width) {
+module module_body(units, offset, depth, width, rack_side) {
     h = module_height(units);
     opening_h = h - 2 * TRAY_EDGE_MARGIN;
     opening_w = width + 2 * TRAY_FIT_CLEARANCE;
@@ -197,8 +245,8 @@ module module_body(units, offset, depth, width) {
 
     assert(ear_width >= MOUNT_HOLE_X + MOUNT_HOLE_D / 2 + EAR_EDGE_MARGIN,
         "tray_offset is too small: the mounting ear has to be wide enough to carry the rack hole");
-    assert(!trays || offset + opening_w + RAIL_THICKNESS <= MODULE_WIDTH,
-        "tray_offset + tray_width is too large to fit a half rack module");
+    assert(!trays || offset + opening_w + RAIL_THICKNESS <= MODULE_WIDTH - JOINER_BULKHEAD,
+        "tray_offset + tray_width would run into the joiner tabs at the inner edge");
     assert(width >= 0, "tray_width cannot be negative");
     assert(depth > 0, "tray_depth must be greater than zero");
     assert(opening_h > 0, "module_units is too small to fit a tray");
@@ -217,6 +265,9 @@ module module_body(units, offset, depth, width) {
             // Tray support frame behind the opening, unless this is a blank.
             if (trays)
                 tray_frame(offset, depth, opening_w, opening_h);
+
+            // Joiner tabs on the non-mounting edge.
+            joiner_tabs(units, rack_side);
         }
 
         // Tray opening through the front panel and the channel keep-out behind
@@ -243,9 +294,9 @@ module module_body(units, offset, depth, width) {
 // Single source of truth for both hands.
 module half_rack_module(units, offset, depth, width, rack_side) {
     if (rack_side == "right") {
-        mirror([1, 0, 0]) module_body(units, offset, depth, width);
+        mirror([1, 0, 0]) module_body(units, offset, depth, width, rack_side);
     } else {
-        module_body(units, offset, depth, width);
+        module_body(units, offset, depth, width, rack_side);
     }
 }
 
