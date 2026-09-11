@@ -64,8 +64,11 @@ FRONT_CUTOUT_MARGIN = 2;
 
 // Handles. They sit on the front face and stand out in front of the rack, so
 // they never have to pass through the opening; only the feet bite into the face.
+// A loop stands upright, so its opening runs up the face and it takes a band
+// that is tall rather than wide. With its feet it is 33 mm tall, which just fits
+// a 1U face (33.2 mm), so lower HANDLE_LOOP_OPENING if you want more room.
 HANDLE_INSET = 20;              // handle centre, in from the tray's edge
-HANDLE_LOOP_OPENING = 24;       // across the loop, between its feet
+HANDLE_LOOP_OPENING = 24;       // the loop's span, between its two feet
 HANDLE_TUBE = 3;                // half donut tube radius
 HANDLE_FOOT_D = 9;              // pad where the loop lands on the face
 HANDLE_FOOT_T = 2;
@@ -236,21 +239,26 @@ module wall_profile(u_len, v_len, style) {
 }
 
 // Half donut pull: a loop of round bar standing off the face, feet flush with it
-// so it reads as a drawer bail.
+// so it reads as a drawer bail. The bail stands upright, so it pulls out like a
+// riser rather than lying along the face.
 module loop_handle() {
     R = HANDLE_LOOP_OPENING / 2;
 
-    // Feet, sunk a little into the face so they fuse to it.
-    for (x = [-R, R])
-        translate([x, HANDLE_BITE, 0])
-            rotate([90, 0, 0])
-                cylinder(d = HANDLE_FOOT_D, h = HANDLE_FOOT_T + HANDLE_BITE, $fn = 32);
+    // Turned in the plane of the face, so the loop's long axis runs up the tray
+    // instead of across it. Rotating about Y keeps it standing off the face.
+    rotate([0, 90, 0]) {
+        // Feet, sunk a little into the face so they fuse to it.
+        for (x = [-R, R])
+            translate([x, HANDLE_BITE, 0])
+                rotate([90, 0, 0])
+                    cylinder(d = HANDLE_FOOT_D, h = HANDLE_FOOT_T + HANDLE_BITE, $fn = 32);
 
-    // The half torus itself, standing out in front of the face.
-    rotate([180, 0, 0])
-        rotate_extrude(angle = 180, $fn = 64)
-            translate([R, 0])
-                circle(r = HANDLE_TUBE, $fn = 24);
+        // The half torus itself, standing out in front of the face.
+        rotate([180, 0, 0])
+            rotate_extrude(angle = 180, $fn = 64)
+                translate([R, 0])
+                    circle(r = HANDLE_TUBE, $fn = 24);
+    }
 }
 
 // Knob on a short stem with a domed end. Prints as-is, no overhang.

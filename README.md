@@ -57,7 +57,7 @@ lower edge, so the outer holes sit near the panel edges.
 | `top_removable` | Build the top in, or print it as its own part | false |
 | `part` | Which piece to build: `body` or `top` | body |
 | `handle_sides` | `none`, `rail`, `centre` or `both` | none |
-| `handle_type` | `loop` (half donut pull) or `knob` | loop |
+| `handle_type` | `loop` (upright half donut pull) or `knob` | loop |
 
 Handles are named from the module's mounting edge: `rail` is the edge that
 screws to the rack, `centre` faces the middle of the rack. Left and right flip
@@ -82,8 +82,10 @@ front_cutouts = [
 pcb_mounts = [[12, 12], [138, 12], [12, 60, 10], [138, 60, 10]];
 ```
 
-Keep cut-outs clear of the handles: each handle takes roughly `HANDLE_INSET`
-+/- 15 mm from its edge, and there is no guard against the two colliding.
+Keep cut-outs clear of the handles: a handle sits `HANDLE_INSET` in from its
+edge and half way up the face, and blocks a band around that point — roughly
++/- 5 mm across and +/- 17 mm up and down — and there is no guard against the two
+colliding.
 
 `tray()` also takes those two lists and the two handle settings as arguments, `cutouts`, `mounts`,
 `handle_sides` and `handle_type`, so a build script can hand over its own without touching this
@@ -98,8 +100,9 @@ That is how a downstream project keeps its build data in its own repo: define th
 them over, and the library stays free of any one build's numbers.
 
 Size the keep-out to the handle you picked: a knob is ~16 mm across, a loop spans
-`HANDLE_LOOP_OPENING` plus its feet (~33 mm) and stands further off the face, so the band a
-cut-out has to avoid is wider with a loop than the `+/- 15 mm` above suggests.
+`HANDLE_LOOP_OPENING` plus its feet (~33 mm) up and down the face and stands further off
+it, so the band a cut-out has to avoid is taller with a loop than the `+/- 17 mm` above
+suggests.
 
 ## Examples
 
@@ -138,7 +141,7 @@ sizes together — `examples/module-pair-1u-back.png` shows the same pair at 1U,
 | ![Skeleton tray](examples/tray-skeleton.png) | ![Tray with mixed wall styles](examples/tray-styles.png) |
 | The default: skeleton sides, back and top | `side_style = "solid"` with `back_style = "slits"`: each wall is chosen separately |
 | ![Loop handles](examples/tray-handle-loop.png) | ![Knob handles](examples/tray-handle-knob.png) |
-| `handle_sides = "both"`, `handle_type = "loop"`: half donut pulls | The same sides with `handle_type = "knob"` |
+| `handle_sides = "both"`, `handle_type = "loop"`: upright half donut pulls | The same sides with `handle_type = "knob"` |
 | ![Body for a removable top](examples/tray-no-top.png) | ![The removable top on its own](examples/tray-top.png) |
 | `top_removable = true`: the body, walls stopping short with screw bosses in the corners | `part = "top"`: the top prints as its own part, with countersunk screw holes |
 | ![1U tray](examples/tray-1u.png) | ![1U tray, every wall slitted](examples/tray-1u-vented.png) |
