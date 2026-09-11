@@ -202,8 +202,8 @@ module pcb_mount(x, y, height, boss_d, pilot_d, w, d) {
 }
 
 // Every PCB mount in the list, each entry overriding as much as it needs to.
-module pcb_standoffs(w, d) {
-    for (m = pcb_mounts)
+module pcb_standoffs(w, d, mounts = pcb_mounts) {
+    for (m = mounts)
         pcb_mount(m[0], m[1],
             len(m) > 2 ? m[2] : PCB_MOUNT_H,
             len(m) > 3 ? m[3] : PCB_MOUNT_D,
@@ -321,8 +321,10 @@ module removable_top(units = module_units, width = tray_width, depth = tray_dept
 
 // A tray. The defaults build the one the Customizer describes; pass units, width
 // and depth to build a different one, which is how the examples put two sizes
-// side by side.
-module tray(units = module_units, width = tray_width, depth = tray_depth) {
+// side by side. cutouts and mounts default to the two lists above, so a build
+// script can hand over its own without touching this file's defaults.
+module tray(units = module_units, width = tray_width, depth = tray_depth,
+            cutouts = front_cutouts, mounts = pcb_mounts) {
     // Outside size: the module's opening, less the slide clearance.
     TRAY_W = opening_width(width) - TRAY_SLIDE_CLEARANCE;
     TRAY_H = opening_height(units) - TRAY_SLIDE_CLEARANCE;
@@ -335,7 +337,7 @@ module tray(units = module_units, width = tray_width, depth = tray_depth) {
         "tray_width is too small: a module that narrow prints as a blank panel, so it has no slot to slide into");
     assert(TRAY_H > 0 && TRAY_D > 0, "module_units and tray_depth must leave a usable tray");
 
-    for (c = front_cutouts)
+    for (c = cutouts)
         assert(c[1] - c[3] / 2 >= FRONT_CUTOUT_MARGIN && c[1] + c[3] / 2 <= TRAY_W - FRONT_CUTOUT_MARGIN
             && c[2] - c[4] / 2 >= FRONT_CUTOUT_MARGIN && c[2] + c[4] / 2 <= TRAY_H - FRONT_CUTOUT_MARGIN,
             "a front_cutout falls outside the front face, or too close to its edge");
@@ -350,7 +352,7 @@ module tray(units = module_units, width = tray_width, depth = tray_depth) {
                 cube([TRAY_W, TRAY_D, WALL_THICKNESS]);
 
             // PCB mounts on the floor.
-            pcb_standoffs(TRAY_W, TRAY_D);
+            pcb_standoffs(TRAY_W, TRAY_D, mounts);
 
             // Side walls, running from the floor up to the rim.
             for (x = [WALL_THICKNESS / 2, TRAY_W - WALL_THICKNESS / 2])
@@ -387,7 +389,7 @@ module tray(units = module_units, width = tray_width, depth = tray_depth) {
         }
 
         // Front cut-outs, right through the front face.
-        for (c = front_cutouts)
+        for (c = cutouts)
             translate([c[1], -1, c[2]])
                 rotate([-90, 0, 0])
                     linear_extrude(height = PANEL_THICKNESS + 2)
