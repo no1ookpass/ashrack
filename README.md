@@ -27,6 +27,11 @@ At the non-mounting edge each module has a pair of joiner tabs. The right hand's
 pair sits one thickness higher, so the two interleave into a four tab stack that
 a single vertical bolt passes through, tying the halves together.
 
+Because a module is really just a slot, the two halves need not match. Each takes
+its own `tray_width` and `tray_depth`, so a wide deep tray and a narrow shallow
+one can sit side by side in the same rack space — the paired examples below do
+exactly that.
+
 ## Module inputs (`ashrack.scad`)
 
 | Input | Meaning | Default |
@@ -81,8 +86,9 @@ Keep cut-outs clear of the handles: each handle takes roughly `HANDLE_INSET`
 
 ## Examples
 
-Everything below is these files with the settings noted. The two scripts in
-`examples/` show how the parts go together.
+Everything below is these files with the settings noted. The three scripts in
+`examples/` show how the parts go together: one for a pair of modules, one for a
+module with its tray, and one for both halves with their trays.
 
 ### Module
 
@@ -92,12 +98,21 @@ Everything below is these files with the settings noted. The two scripts in
 | **Left hand**, the default: mounting ear with the rack screw holes, skeleton tray frame behind the panel | **Right hand**, `side = "right"`. The same model mirrored, so there is no second file |
 | ![Blank panel](examples/module-blank.png) | ![4U module, one hole per unit](examples/module-4u.png) |
 | `tray_width = 0`: a **blank panel**, no slot and no frame at all | `module_units = 4` with `screw_holes = 1`: one centre hole per unit |
+| ![1U module](examples/module-1u.png) | ![Two 1U halves joined](examples/module-pair-1u.png) |
+| `module_units = 1`: a single unit tall | The pair again at 1U, still with two different slot sizes |
 
 ![Two halves joined](examples/module-pair.png)
 
 *Two halves butted at the centre of the rack. The panels meet flush, and the
 joiner tabs interleave into one stack for a single vertical bolt — see
 `examples/module-pair.scad`.*
+
+![The same two halves from behind](examples/module-pair-back.png)
+
+*The same pair from behind, where you can see each half is its own slot: 150 x
+150 mm on the rail side, 110 x 80 mm on the centre side. Nothing ties the two
+sizes together — `examples/module-pair-1u-back.png` shows the same pair at 1U, and
+`examples/pair-assembly-back.png` the same idea with trays in place.*
 
 ### Tray
 
@@ -109,6 +124,10 @@ joiner tabs interleave into one stack for a single vertical bolt — see
 | `handle_sides = "both"`, `handle_type = "loop"`: half donut pulls | The same sides with `handle_type = "knob"` |
 | ![Body for a removable top](examples/tray-no-top.png) | ![The removable top on its own](examples/tray-top.png) |
 | `top_removable = true`: the body, walls stopping short with screw bosses in the corners | `part = "top"`: the top prints as its own part, with countersunk screw holes |
+| ![1U tray](examples/tray-1u.png) | ![1U tray, every wall slitted](examples/tray-1u-vented.png) |
+| `module_units = 1`: a shallow tray, but `tray_depth` still sets how far back it reaches | All three wall styles set to `"slits"` |
+| ![1U patch panel tray](examples/tray-1u-patch.png) | ![1U tray with cable slots](examples/tray-1u-slots.png) |
+| A patch panel front: four ethernet openings and an LED, with solid walls and PCB mounts behind | Three stadium openings, from the optional sixth cut-out value that rounds a rectangle's corners |
 
 ![Tray with cut-outs, mounts and handles](examples/tray-fitted.png)
 
@@ -122,6 +141,20 @@ handles on both sides.*
 
 *`examples/assembly.scad`: the module, with the tray placed by `tray_position()`
 so it runs exactly where it slides.*
+
+![Both halves with their own trays](examples/pair-assembly.png)
+
+*Both halves at once, each with a tray built to its own slot: 150 x 150 mm on the
+left, 110 x 80 mm on the right. The right half and its tray are the same models
+mirrored, so the tray runs into the slot from the other side.*
+
+![The same pair of assemblies from behind](examples/pair-assembly-back.png)
+
+*From behind: the two trays side by side, each sized to the slot holding it.*
+
+![A 1U module with its tray](examples/assembly-1u.png)
+
+*The same assembly at `module_units = 1`, module and tray together.*
 
 ## Rendering
 
@@ -143,6 +176,25 @@ translate(tray_position(20)) tray();
 The tray is built to the module's opening less a `TRAY_SLIDE_CLEARANCE`, so that
 placement leaves 0.25 mm per side. If your printer needs more room, that one
 constant is the knob.
+
+`tray()` also takes the size it should be built to, so one script can make any
+number of differently sized trays:
+
+```scad
+// tray(units, width, depth) — the same numbers the module was built with
+tray();                            // the Customizer's tray, 2U x 150 x 150
+tray(units = 1, width = 110);      // 1U, 110 wide, 150 deep
+tray(width = 110, depth = 80);     // 2U, 110 wide, 80 deep
+```
+
+The same goes for `removable_top()`, so a body and its own top always match.
+
+To see the back of a part, render it from the other side by turning the camera
+to the opposite azimuth:
+
+```
+openscad -o back.png --camera=0,0,0,58,0,208,0 --projection=p examples/pair-assembly.scad
+```
 
 ## Printing
 

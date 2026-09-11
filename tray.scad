@@ -134,10 +134,9 @@ front_cutouts = [];
 //   [12, 12], [138, 12], [12, 60, 10], [138, 60, 10]
 pcb_mounts = [];
 
-// Tray outside size: the module's opening, less the slide clearance.
-TRAY_W = opening_width(tray_width) - TRAY_SLIDE_CLEARANCE;
-TRAY_H = opening_height(module_units) - TRAY_SLIDE_CLEARANCE;
-TRAY_D = tray_depth;
+// Tray outside size is derived inside tray() from the numbers it is given, so a
+// script can build trays of different sizes to sit side by side. See the bottom
+// of this file.
 
 // PCB standoffs on the floor: a boss with a blind pilot hole for a screw. Sized
 // per mount from its list entry, falling back to these defaults.
@@ -147,14 +146,12 @@ PCB_MOUNT_SINK = 0.6;           // how far the boss sinks into the floor, so it 
 PCB_MOUNT_FLOOR = 1.5;          // material left under the pilot hole
 PCB_SCREW_PILOT_D = 2.5;        // self-tapping M3 by default
 
-// Walls stop short when the top is removable, so the roof finishes flush.
-WALL_TOP = top_removable ? TRAY_H - TOP_THICKNESS : TRAY_H;
-
-// Boss centres, pulled in far enough to bite into both walls at each corner.
+// Boss centres for a tray of this width and depth, pulled in far enough to bite
+// into both walls at each corner.
 TOP_BOSS_INSET = WALL_THICKNESS + TOP_BOSS_D / 2 - TOP_BOSS_BITE;
-TOP_BOSS_POSITIONS = [
-    for (x = [TOP_BOSS_INSET, TRAY_W - TOP_BOSS_INSET])
-        for (y = [PANEL_THICKNESS + TOP_BOSS_INSET, PANEL_THICKNESS + TRAY_D - TOP_BOSS_INSET])
+function top_boss_positions(w, d) = [
+    for (x = [TOP_BOSS_INSET, w - TOP_BOSS_INSET])
+        for (y = [PANEL_THICKNESS + TOP_BOSS_INSET, PANEL_THICKNESS + d - TOP_BOSS_INSET])
             [x, y]
 ];
 
@@ -190,9 +187,9 @@ module hole_profile(hole) {
 }
 
 // A PCB standoff: a boss on the floor with a blind pilot hole, open at the top.
-module pcb_mount(x, y, height, boss_d, pilot_d) {
-    assert(x >= WALL_THICKNESS + boss_d / 2 && x <= TRAY_W - WALL_THICKNESS - boss_d / 2
-        && y >= PANEL_THICKNESS + boss_d / 2 && y <= PANEL_THICKNESS + TRAY_D - boss_d / 2,
+module pcb_mount(x, y, height, boss_d, pilot_d, w, d) {
+    assert(x >= WALL_THICKNESS + boss_d / 2 && x <= w - WALL_THICKNESS - boss_d / 2
+        && y >= PANEL_THICKNESS + boss_d / 2 && y <= PANEL_THICKNESS + d - boss_d / 2,
         "a pcb_mount falls outside the floor, or runs into a wall or the front face");
 
     translate([x, y, WALL_THICKNESS - PCB_MOUNT_SINK])
@@ -205,12 +202,12 @@ module pcb_mount(x, y, height, boss_d, pilot_d) {
 }
 
 // Every PCB mount in the list, each entry overriding as much as it needs to.
-module pcb_standoffs() {
+module pcb_standoffs(w, d) {
     for (m = pcb_mounts)
         pcb_mount(m[0], m[1],
             len(m) > 2 ? m[2] : PCB_MOUNT_H,
             len(m) > 3 ? m[3] : PCB_MOUNT_D,
-            len(m) > 4 ? m[4] : PCB_SCREW_PILOT_D);
+            len(m) > 4 ? m[4] : PCB_SCREW_PILOT_D, w, d);
 }
 
 // Solid wall with a row of rounded slots down it.
@@ -268,14 +265,14 @@ module knob_handle() {
         }
 }
 
-// Handles where the user asked for them.
-module handles() {
+// Handles where the user asked for them, on a tray of this width and height.
+module handles(w, h) {
     for (i = [0, 1])
         if (handle_on(i))
             translate([
-                i == 0 ? HANDLE_INSET : TRAY_W - HANDLE_INSET,
+                i == 0 ? HANDLE_INSET : w - HANDLE_INSET,
                 0,
-                TRAY_H / 2
+                h / 2
             ])
                 if (handle_type == "knob")
                     knob_handle();
@@ -285,8 +282,8 @@ module handles() {
 
 // A corner boss for a top screw, fused to the walls and blind-drilled so the
 // screw taps into it.
-module top_boss(x, y) {
-    translate([x, y, WALL_TOP - TOP_BOSS_HEIGHT])
+module top_boss(x, y, wall_top) {
+    translate([x, y, wall_top - TOP_BOSS_HEIGHT])
         difference() {
             cylinder(d = TOP_BOSS_D, h = TOP_BOSS_HEIGHT, $fn = 32);
 
@@ -298,14 +295,18 @@ module top_boss(x, y) {
 
 // The removable top: one piece covering the whole roof, screwed down onto the
 // bosses. With top_removable = false the roof is part of the body instead.
-module removable_top() {
+module removable_top(units = module_units, width = tray_width, depth = tray_depth) {
+    TRAY_W = opening_width(width) - TRAY_SLIDE_CLEARANCE;
+    TRAY_H = opening_height(units) - TRAY_SLIDE_CLEARANCE;
+    TRAY_D = depth;
+
     difference() {
         translate([TRAY_W / 2, PANEL_THICKNESS + TRAY_D / 2, TRAY_H - TOP_THICKNESS / 2])
             rotate([0, 0, 90])
                 linear_extrude(height = TOP_THICKNESS, center = true)
                     wall_profile(TRAY_D, TRAY_W, top_style);
 
-        for (p = TOP_BOSS_POSITIONS) {
+        for (p = top_boss_positions(TRAY_W, TRAY_D)) {
             // Clearance hole.
             translate([p[0], p[1], TRAY_H - TOP_THICKNESS - 1])
                 cylinder(d = TOP_SCREW_CLEARANCE_D, h = TOP_THICKNESS + 2, $fn = 24);
@@ -318,8 +319,19 @@ module removable_top() {
     }
 }
 
-module tray() {
-    assert(tray_width >= MIN_TRAY_WIDTH,
+// A tray. The defaults build the one the Customizer describes; pass units, width
+// and depth to build a different one, which is how the examples put two sizes
+// side by side.
+module tray(units = module_units, width = tray_width, depth = tray_depth) {
+    // Outside size: the module's opening, less the slide clearance.
+    TRAY_W = opening_width(width) - TRAY_SLIDE_CLEARANCE;
+    TRAY_H = opening_height(units) - TRAY_SLIDE_CLEARANCE;
+    TRAY_D = depth;
+
+    // Walls stop short when the top is removable, so the roof finishes flush.
+    WALL_TOP = top_removable ? TRAY_H - TOP_THICKNESS : TRAY_H;
+
+    assert(width >= MIN_TRAY_WIDTH,
         "tray_width is too small: a module that narrow prints as a blank panel, so it has no slot to slide into");
     assert(TRAY_H > 0 && TRAY_D > 0, "module_units and tray_depth must leave a usable tray");
 
@@ -338,7 +350,7 @@ module tray() {
                 cube([TRAY_W, TRAY_D, WALL_THICKNESS]);
 
             // PCB mounts on the floor.
-            pcb_standoffs();
+            pcb_standoffs(TRAY_W, TRAY_D);
 
             // Side walls, running from the floor up to the rim.
             for (x = [WALL_THICKNESS / 2, TRAY_W - WALL_THICKNESS / 2])
@@ -366,12 +378,12 @@ module tray() {
                             wall_profile(TRAY_D, TRAY_W - 2 * WALL_THICKNESS, top_style);
 
             // Handles on the front face.
-            handles();
+            handles(TRAY_W, TRAY_H);
 
             // Bosses the removable top screws into.
             if (top_removable)
-                for (p = TOP_BOSS_POSITIONS)
-                    top_boss(p[0], p[1]);
+                for (p = top_boss_positions(TRAY_W, TRAY_D))
+                    top_boss(p[0], p[1], WALL_TOP);
         }
 
         // Front cut-outs, right through the front face.
@@ -386,7 +398,7 @@ module tray() {
 if (part == "top") {
     assert(top_removable,
         "part = \"top\" but top_removable is false: the roof is built into the tray body, so there is no separate top to print");
-    removable_top();
+    removable_top(module_units, tray_width, tray_depth);
 } else {
-    tray();
+    tray(module_units, tray_width, tray_depth);
 }
