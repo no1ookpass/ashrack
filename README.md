@@ -85,15 +85,21 @@ pcb_mounts = [[12, 12], [138, 12], [12, 60, 10], [138, 60, 10]];
 Keep cut-outs clear of the handles: each handle takes roughly `HANDLE_INSET`
 +/- 15 mm from its edge, and there is no guard against the two colliding.
 
-`tray()` also takes both lists as its last two arguments, `cutouts` and `mounts`, so a build script
-can hand over its own without touching this file's defaults:
+`tray()` also takes those two lists and the two handle settings as arguments, `cutouts`, `mounts`,
+`handle_sides` and `handle_type`, so a build script can hand over its own without touching this
+file's defaults:
 
 ```scad
-tray(units = 1, width = 180, depth = 150, cutouts = my_cutouts, mounts = my_mounts);
+tray(units = 1, width = 180, depth = 150, cutouts = my_cutouts, mounts = my_mounts,
+     handle_sides = "rail", handle_type = "loop");
 ```
 
 That is how a downstream project keeps its build data in its own repo: define the lists there, hand
 them over, and the library stays free of any one build's numbers.
+
+Size the keep-out to the handle you picked: a knob is ~16 mm across, a loop spans
+`HANDLE_LOOP_OPENING` plus its feet (~33 mm) and stands further off the face, so the band a
+cut-out has to avoid is wider with a loop than the `+/- 15 mm` above suggests.
 
 ## Examples
 

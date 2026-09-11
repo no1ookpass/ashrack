@@ -75,10 +75,10 @@ HANDLE_STEM_D = 10;
 HANDLE_KNOB_H = 12;             // how far the knob stands off the face
 
 // Handle sides, indexed 0 = rail, 1 = centre.
-function handle_on(index) =
-    handle_sides == "both" ? true
-    : handle_sides == "none" ? false
-    : handle_sides == "rail" ? index == 0
+function handle_on(index, sides = handle_sides) =
+    sides == "both" ? true
+    : sides == "none" ? false
+    : sides == "rail" ? index == 0
     : index == 1;
 
 // Removable top: M3 screws, self-tapping into printed bosses. The top and its
@@ -266,15 +266,15 @@ module knob_handle() {
 }
 
 // Handles where the user asked for them, on a tray of this width and height.
-module handles(w, h) {
+module handles(w, h, sides = handle_sides, type = handle_type) {
     for (i = [0, 1])
-        if (handle_on(i))
+        if (handle_on(i, sides))
             translate([
                 i == 0 ? HANDLE_INSET : w - HANDLE_INSET,
                 0,
                 h / 2
             ])
-                if (handle_type == "knob")
+                if (type == "knob")
                     knob_handle();
                 else
                     loop_handle();
@@ -321,10 +321,12 @@ module removable_top(units = module_units, width = tray_width, depth = tray_dept
 
 // A tray. The defaults build the one the Customizer describes; pass units, width
 // and depth to build a different one, which is how the examples put two sizes
-// side by side. cutouts and mounts default to the two lists above, so a build
-// script can hand over its own without touching this file's defaults.
+// side by side. cutouts, mounts and the two handle settings all default to the
+// ones above, so a build script can hand over its own without touching this
+// file's defaults.
 module tray(units = module_units, width = tray_width, depth = tray_depth,
-            cutouts = front_cutouts, mounts = pcb_mounts) {
+            cutouts = front_cutouts, mounts = pcb_mounts,
+            handle_sides = handle_sides, handle_type = handle_type) {
     // Outside size: the module's opening, less the slide clearance.
     TRAY_W = opening_width(width) - TRAY_SLIDE_CLEARANCE;
     TRAY_H = opening_height(units) - TRAY_SLIDE_CLEARANCE;
@@ -380,7 +382,7 @@ module tray(units = module_units, width = tray_width, depth = tray_depth,
                             wall_profile(TRAY_D, TRAY_W - 2 * WALL_THICKNESS, top_style);
 
             // Handles on the front face.
-            handles(TRAY_W, TRAY_H);
+            handles(TRAY_W, TRAY_H, handle_sides, handle_type);
 
             // Bosses the removable top screws into.
             if (top_removable)
