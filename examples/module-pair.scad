@@ -9,7 +9,7 @@
 //
 // 482.6 is a full rack width: the right hand is the mirror, so shifting it by a
 // whole rack width puts its mounting edge at the far rail.
-use <../ashrack.scad>
+use <../ashrack-panel.scad>
 
 // Rack units tall. Override from the command line, e.g. -D units=1
 units = 2;

@@ -8,14 +8,15 @@ slides into it, so the tray can be built to suit whatever goes inside.
 
 | File | What it is |
 |---|---|
-| `ashrack.scad` | The front module: panel, mounting ear with the rack screw holes, the skeleton frame that holds a tray, and the joiner tabs |
-| `tray.scad` | The tray that slides into a module: front face with cut-outs, floor with PCB mounts, styled walls, and an optional removable top |
-| `ashrack_common.scad` | Shared rack standards, material and fit dimensions. Included by both parts, so a tray cannot drift out of fit with its module |
+| `ashrack-panel.scad` | The front module: panel, mounting ear with the rack screw holes, the skeleton frame that holds a tray, and the joiner tabs |
+| `ashrack-tray.scad` | The tray that slides into a module: front face with cut-outs, floor with PCB mounts, styled walls, and an optional removable top |
+| `ashrack-common.scad` | Shared rack standards, material and fit dimensions. Included by both parts, so a tray cannot drift out of fit with its module |
 
 Open either part in OpenSCAD and use the Customizer panel; everything you can
 change is listed there. The two parts are separate files, but they include the
 same dimension file, so build them with matching `module_units`, `tray_width`
-and `tray_depth`.
+and `tray_depth`. Every file is named `ashrack-`, so the project's parts sort
+together in a listing and can't be mistaken for a `tray.scad` from elsewhere.
 
 ## How the two halves work
 
@@ -32,7 +33,7 @@ its own `tray_width` and `tray_depth`, so a wide deep tray and a narrow shallow
 one can sit side by side in the same rack space — the paired examples below do
 exactly that.
 
-## Module inputs (`ashrack.scad`)
+## Module inputs (`ashrack-panel.scad`)
 
 | Input | Meaning | Default |
 |---|---|---|
@@ -47,7 +48,7 @@ exactly that.
 Rack screw holes follow EIA-310: 6.35, 22.225 and 38.1 mm above each unit's
 lower edge, so the outer holes sit near the panel edges.
 
-## Tray inputs (`tray.scad`)
+## Tray inputs (`ashrack-tray.scad`)
 
 | Input | Meaning | Default |
 |---|---|---|
@@ -169,16 +170,16 @@ mirrored, so the tray runs into the slot from the other side.*
 ## Rendering
 
 ```
-openscad -o module.stl ashrack.scad
-openscad -o tray.stl   tray.scad
-openscad -o top.stl    -D 'top_removable=true' -D 'part="top"' tray.scad
+openscad -o module.stl ashrack-panel.scad
+openscad -o tray.stl   ashrack-tray.scad
+openscad -o top.stl    -D 'top_removable=true' -D 'part="top"' ashrack-tray.scad
 ```
 
 To check a tray in its module, place it with the helper the tray provides:
 
 ```scad
-use <ashrack.scad>
-use <tray.scad>
+use <ashrack-panel.scad>
+use <ashrack-tray.scad>
 half_rack_module(2, 20, 150, 150, "left");
 translate(tray_position(20)) tray();
 ```

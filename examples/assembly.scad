@@ -3,8 +3,8 @@
 //
 //   openscad -o examples/assembly.png examples/assembly.scad
 //   openscad -o examples/assembly-1u.png -D units=1 examples/assembly.scad
-use <../ashrack.scad>
-use <../tray.scad>
+use <../ashrack-panel.scad>
+use <../ashrack-tray.scad>
 
 // Rack units tall. Override from the command line, e.g. -D units=1
 units = 2;

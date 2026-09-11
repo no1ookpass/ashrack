@@ -1,15 +1,16 @@
-// Ashrack - half rack, modular rack mount system.
+// Ashrack panel - the front of one half of the rack.
 //
-// Front module plus tray support for one half of a standard 19" rack.
-// Both hands come from the same geometry, mirrored with a transform, so
-// there is never a second model file to maintain.
+// Panel, mounting ear with the rack screw holes, the skeleton frame a tray
+// slides into, and the joiner tabs that tie the two halves together. Both hands
+// come from the same geometry, mirrored with a transform, so there is never a
+// second model file to maintain.
 //
 // Local coordinate system of the module body:
 //   X = 0 at the rack mounting edge, growing towards the rack centre
 //   Y = 0 at the front face, growing backwards into the rack
 //   Z = 0 at the bottom of the panel
 
-include <ashrack_common.scad>
+include <ashrack-common.scad>
 
 /* [Module] */
 

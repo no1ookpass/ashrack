@@ -9,7 +9,7 @@
 //   Y = 0 at the front face, growing backwards into the rack
 //   Z = 0 at the bottom of the opening
 
-include <ashrack_common.scad>
+include <ashrack-common.scad>
 
 // Front cut-outs and PCB mounts are lists you edit here in the file. The
 // Customizer cannot take a list of shapes (it only accepts flat vectors of up to

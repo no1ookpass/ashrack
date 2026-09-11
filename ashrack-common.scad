@@ -1,8 +1,8 @@
-// Ashrack - shared standards, fit dimensions and styling.
+// Ashrack common - shared rack standards, fit dimensions and styling.
 //
-// Included by the front module (ashrack.scad) and by the trays that slide into
-// it, so the two can never drift apart: everything that decides whether a tray
-// fits its module lives here.
+// Included by the front panel (ashrack-panel.scad) and by the tray that slides
+// into it (ashrack-tray.scad), so the two can never drift apart: everything that
+// decides whether a tray fits its module lives here.
 
 $fn = 64;
 

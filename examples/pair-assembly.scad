@@ -7,8 +7,8 @@
 // mirrors the body, so its tray needs its placement mirrored too, or it would
 // land on the wrong side of the slot. Mirroring the tray along with the module
 // also puts its handles and cut-outs the right way round.
-use <../ashrack.scad>
-use <../tray.scad>
+use <../ashrack-panel.scad>
+use <../ashrack-tray.scad>
 
 // Rack units tall, and a different tray size on each side.
 units = 2;
