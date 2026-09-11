@@ -1,0 +1,9 @@
+# OpenSCAD render and export output. Scoped to the repo root so the example
+# images in examples/ stay tracked.
+/*.stl
+/*.3mf
+/*.amf
+/*.off
+/*.png
+/*.gcode
+/*.bgcode

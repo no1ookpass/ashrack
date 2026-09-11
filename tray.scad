@@ -106,10 +106,12 @@ TOP_SCREW_HEAD_DEPTH = 1.7;
 // x = 2..TRAY_W-2 and z = 2..TRAY_H-2. A corner radius of half the shorter side
 // turns the rectangle into a stadium slot (handy for connectors on flying leads).
 //
-// The two 1" ethernet openings and an LED for the current build, for example:
-//   ["rect",   28, 40, 25, 21],   // ethernet jack 1
-//   ["rect",   66, 40, 25, 21],   // ethernet jack 2
-//   ["circle", 110, 40,  8,  0],  // LED
+// The two 1" ethernet openings and an LED for the current build, for example.
+// Note where the handles land: each one takes roughly HANDLE_INSET +/- 15 mm, so
+// keep cut-outs out of those bands. There is no guard against the two colliding.
+//   ["rect",   52, 40, 25, 21],   // ethernet jack 1
+//   ["rect",   82, 40, 25, 21],   // ethernet jack 2
+//   ["circle", 105, 40,  8,  0],  // LED
 front_cutouts = [];
 
 // PCB mounts on the floor: any number of standoffs, from zero up. Each entry adds
