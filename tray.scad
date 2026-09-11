@@ -1,8 +1,8 @@
 // Ashrack tray - the drawer that slides into a module's tray slot.
 //
-// Front and floor are always solid. The side walls and the top can each be solid,
-// solid with slits, or a criss-cross skeleton. Front cut-outs are listed in this
-// file (see front_cutouts below).
+// Front and floor are always solid. The side walls, back wall and top can each be
+// solid, solid with slits, or a criss-cross skeleton. The front cut-outs and the
+// PCB mounts on the floor are both lists you edit in this file, further down.
 //
 // Coordinates match the module's opening, so the tray drops straight in:
 //   X = 0 at the left of the opening, growing right
@@ -10,6 +10,10 @@
 //   Z = 0 at the bottom of the opening
 
 include <ashrack_common.scad>
+
+// Front cut-outs and PCB mounts are lists you edit here in the file. The
+// Customizer cannot take a list of shapes (it only accepts flat vectors of up to
+// four numbers), so this data lives in code where it can be any length.
 
 /* [Tray] */
 
@@ -90,19 +94,56 @@ TOP_SCREW_CLEARANCE_D = 3.4;
 TOP_SCREW_HEAD_D = 6.2;
 TOP_SCREW_HEAD_DEPTH = 1.7;
 
-// Front cut-outs. One entry per cut-out, each a rounded rectangle:
-//   [x, z, width, height, corner_radius]
-// (x, z) is the cut-out's centre measured from the bottom left of the front face.
-// A radius of half the smaller side gives a circle or a stadium slot. This list
-// has to be edited here: the Customizer only accepts flat vectors of up to four
-// numbers, so a list of cut-outs cannot be entered in the UI. For example:
-//   front_cutouts = [[45, 40, 25, 15, 7.5], [105, 40, 14, 14, 7]];
+// Front cut-outs: any number of openings in the front face, from zero up.
+//
+//   ["rect",   x, z, width, height]          a rectangular opening
+//   ["circle", x, z, diameter, 0]            a round opening
+//   ["rect",   x, z, width, height, radius]  a 6th value rounds the corners
+//
+// (x, z) is the centre of the opening, in mm from the bottom left corner of the
+// front face. The face is TRAY_W wide and TRAY_H tall, and every opening must
+// stay FRONT_CUTOUT_MARGIN inside it, so the usable range is roughly
+// x = 2..TRAY_W-2 and z = 2..TRAY_H-2. A corner radius of half the shorter side
+// turns the rectangle into a stadium slot (handy for connectors on flying leads).
+//
+// The two 1" ethernet openings and an LED for the current build, for example:
+//   ["rect",   28, 40, 25, 21],   // ethernet jack 1
+//   ["rect",   66, 40, 25, 21],   // ethernet jack 2
+//   ["circle", 110, 40,  8,  0],  // LED
 front_cutouts = [];
+
+// PCB mounts on the floor: any number of standoffs, from zero up. Each entry adds
+// one more override, so you only write what differs from the defaults:
+//
+//   [x, y]                            default boss, height and screw
+//   [x, y, height]                    a taller or shorter standoff
+//   [x, y, height, boss_d]            ... and a different boss diameter
+//   [x, y, height, boss_d, pilot_d]   ... and a different screw
+//
+// (x, y) is the centre of the standoff, in mm, measured from the tray's front
+// left corner: x across the tray, y back from the front face, so y = 0 is the
+// outside of the front face and the floor proper starts at y = PANEL_THICKNESS.
+// The floor's usable area runs x = WALL_THICKNESS..TRAY_W-WALL_THICKNESS and
+// y = PANEL_THICKNESS..PANEL_THICKNESS+TRAY_D. Defaults come from the PCB_
+// constants above.
+//
+// A 100 x 60 board on four standoffs, with the back pair taller to clear a
+// connector, for example:
+//   [12, 12], [138, 12], [12, 60, 10], [138, 60, 10]
+pcb_mounts = [];
 
 // Tray outside size: the module's opening, less the slide clearance.
 TRAY_W = opening_width(tray_width) - TRAY_SLIDE_CLEARANCE;
 TRAY_H = opening_height(module_units) - TRAY_SLIDE_CLEARANCE;
 TRAY_D = tray_depth;
+
+// PCB standoffs on the floor: a boss with a blind pilot hole for a screw. Sized
+// per mount from its list entry, falling back to these defaults.
+PCB_MOUNT_D = 7;                // boss diameter
+PCB_MOUNT_H = 6;                // boss height off the floor
+PCB_MOUNT_SINK = 0.6;           // how far the boss sinks into the floor, so it fuses
+PCB_MOUNT_FLOOR = 1.5;          // material left under the pilot hole
+PCB_SCREW_PILOT_D = 2.5;        // self-tapping M3 by default
 
 // Walls stop short when the top is removable, so the roof finishes flush.
 WALL_TOP = top_removable ? TRAY_H - TOP_THICKNESS : TRAY_H;
@@ -136,6 +177,38 @@ module rounded_cutout(width, height, radius) {
                 for (sz = [-1, 1])
                     translate([sx * (width / 2 - r), sz * (height / 2 - r)])
                         circle(r = r, $fn = 32);
+}
+
+// The 2D profile of one front cut-out, taken from its list entry.
+module hole_profile(hole) {
+    if (hole[0] == "circle")
+        circle(d = hole[3], $fn = 64);
+    else
+        rounded_cutout(hole[3], hole[4], len(hole) > 5 ? hole[5] : 0);
+}
+
+// A PCB standoff: a boss on the floor with a blind pilot hole, open at the top.
+module pcb_mount(x, y, height, boss_d, pilot_d) {
+    assert(x >= WALL_THICKNESS + boss_d / 2 && x <= TRAY_W - WALL_THICKNESS - boss_d / 2
+        && y >= PANEL_THICKNESS + boss_d / 2 && y <= PANEL_THICKNESS + TRAY_D - boss_d / 2,
+        "a pcb_mount falls outside the floor, or runs into a wall or the front face");
+
+    translate([x, y, WALL_THICKNESS - PCB_MOUNT_SINK])
+        difference() {
+            cylinder(d = boss_d, h = height + PCB_MOUNT_SINK, $fn = 32);
+
+            translate([0, 0, PCB_MOUNT_FLOOR])
+                cylinder(d = pilot_d, h = height - PCB_MOUNT_FLOOR + 0.1, $fn = 24);
+        }
+}
+
+// Every PCB mount in the list, each entry overriding as much as it needs to.
+module pcb_standoffs() {
+    for (m = pcb_mounts)
+        pcb_mount(m[0], m[1],
+            len(m) > 2 ? m[2] : PCB_MOUNT_H,
+            len(m) > 3 ? m[3] : PCB_MOUNT_D,
+            len(m) > 4 ? m[4] : PCB_SCREW_PILOT_D);
 }
 
 // Solid wall with a row of rounded slots down it.
@@ -249,8 +322,8 @@ module tray() {
     assert(TRAY_H > 0 && TRAY_D > 0, "module_units and tray_depth must leave a usable tray");
 
     for (c = front_cutouts)
-        assert(c[0] - c[2] / 2 >= FRONT_CUTOUT_MARGIN && c[0] + c[2] / 2 <= TRAY_W - FRONT_CUTOUT_MARGIN
-            && c[1] - c[3] / 2 >= FRONT_CUTOUT_MARGIN && c[1] + c[3] / 2 <= TRAY_H - FRONT_CUTOUT_MARGIN,
+        assert(c[1] - c[3] / 2 >= FRONT_CUTOUT_MARGIN && c[1] + c[3] / 2 <= TRAY_W - FRONT_CUTOUT_MARGIN
+            && c[2] - c[4] / 2 >= FRONT_CUTOUT_MARGIN && c[2] + c[4] / 2 <= TRAY_H - FRONT_CUTOUT_MARGIN,
             "a front_cutout falls outside the front face, or too close to its edge");
 
     difference() {
@@ -261,6 +334,9 @@ module tray() {
             // Floor: solid.
             translate([0, PANEL_THICKNESS, 0])
                 cube([TRAY_W, TRAY_D, WALL_THICKNESS]);
+
+            // PCB mounts on the floor.
+            pcb_standoffs();
 
             // Side walls, running from the floor up to the rim.
             for (x = [WALL_THICKNESS / 2, TRAY_W - WALL_THICKNESS / 2])
@@ -298,10 +374,10 @@ module tray() {
 
         // Front cut-outs, right through the front face.
         for (c = front_cutouts)
-            translate([c[0], -1, c[1]])
+            translate([c[1], -1, c[2]])
                 rotate([-90, 0, 0])
                     linear_extrude(height = PANEL_THICKNESS + 2)
-                        rounded_cutout(c[2], c[3], c[4]);
+                        hole_profile(c);
     }
 }
 
