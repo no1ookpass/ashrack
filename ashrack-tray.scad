@@ -304,7 +304,8 @@ module top_boss(x, y, wall_top) {
 
 // The removable top: one piece covering the whole roof, screwed down onto the
 // bosses. With top_removable = false the roof is part of the body instead.
-module removable_top(units = module_units, width = tray_width, depth = tray_depth) {
+module removable_top(units = module_units, width = tray_width, depth = tray_depth,
+                     top_style = top_style) {
     TRAY_W = opening_width(width) - TRAY_SLIDE_CLEARANCE;
     TRAY_H = opening_height(units) - TRAY_SLIDE_CLEARANCE;
     TRAY_D = depth;
@@ -330,12 +331,15 @@ module removable_top(units = module_units, width = tray_width, depth = tray_dept
 
 // A tray. The defaults build the one the Customizer describes; pass units, width
 // and depth to build a different one, which is how the examples put two sizes
-// side by side. cutouts, mounts and the two handle settings all default to the
-// ones above, so a build script can hand over its own without touching this
-// file's defaults.
+// side by side. Every other argument defaults to the setting of the same name
+// above, so a build script can hand over its own without touching this file's
+// defaults. Pass top_removable = true to get the body WITHOUT a roof, and print
+// the roof as its own part with removable_top() — a roof built into the body
+// spans the empty tray and has to be bridged, which sags.
 module tray(units = module_units, width = tray_width, depth = tray_depth,
             cutouts = front_cutouts, mounts = pcb_mounts,
-            handle_sides = handle_sides, handle_type = handle_type) {
+            handle_sides = handle_sides, handle_type = handle_type,
+            top_style = top_style, top_removable = top_removable) {
     // Outside size: the module's opening, less the slide clearance.
     TRAY_W = opening_width(width) - TRAY_SLIDE_CLEARANCE;
     TRAY_H = opening_height(units) - TRAY_SLIDE_CLEARANCE;

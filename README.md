@@ -87,13 +87,13 @@ edge and half way up the face, and blocks a band around that point — roughly
 +/- 4 mm across and +/- 14 mm up and down — and there is no guard against the two
 colliding.
 
-`tray()` also takes those two lists and the two handle settings as arguments, `cutouts`, `mounts`,
-`handle_sides` and `handle_type`, so a build script can hand over its own without touching this
-file's defaults:
+`tray()` also takes the two lists, the two handle settings and the two roof settings as arguments —
+`cutouts`, `mounts`, `handle_sides`, `handle_type`, `top_style` and `top_removable` — so a build
+script can hand over its own without touching this file's defaults:
 
 ```scad
 tray(units = 1, width = 180, depth = 150, cutouts = my_cutouts, mounts = my_mounts,
-     handle_sides = "rail", handle_type = "loop");
+     handle_sides = "rail", handle_type = "loop", top_removable = true);
 ```
 
 That is how a downstream project keeps its build data in its own repo: define the lists there, hand
@@ -229,6 +229,14 @@ openscad -o back.png --camera=0,0,0,58,0,208,0 --projection=p examples/pair-asse
   handle either way, and a loop printed front-down has a bridge at the top of its
   arch.
 - **Removable top**: print it flat, countersinks up.
+- **Roof — the part that decides the tray's print.** Built into the body
+  (`top_removable = false`, the default) the roof spans the empty tray: a 3 mm rail plus its
+  cross-bars bridging the full depth — ~147 mm at 150 deep. A slicer classifies a span between two
+  walls as a *bridge*, not an overhang, so it will not scaffold it; it slows down and the rail sags.
+  Turning supports on is worse: the scaffold fills the drawer you then have to reach into with
+  pliers. **Print the top as its own part** (`top_removable = true`) — the body is then open-topped
+  with nothing overhanging anywhere, and the roof is a flat panel. That is the only way to get a
+  1U tray out with zero supports.
 
 ## Hardware
 
