@@ -64,13 +64,14 @@ FRONT_CUTOUT_MARGIN = 2;
 
 // Handles. They sit on the front face and stand out in front of the rack, so
 // they never have to pass through the opening; only the feet bite into the face.
-// A loop stands upright, so its opening runs up the face and it takes a band
-// that is tall rather than wide. With its feet it is 33 mm tall, which just fits
-// a 1U face (33.2 mm), so lower HANDLE_LOOP_OPENING if you want more room.
+// A loop stands upright, so its opening runs up the face: it takes a band
+// HANDLE_LOOP_OPENING + HANDLE_FOOT_D tall, 28 mm, which sits in a 1U face
+// (33.15 mm) with 2.6 mm to spare top and bottom. It stands HANDLE_LOOP_OPENING/2
+// + HANDLE_TUBE, 13 mm, off the face.
 HANDLE_INSET = 20;              // handle centre, in from the tray's edge
-HANDLE_LOOP_OPENING = 24;       // the loop's span, between its two feet
+HANDLE_LOOP_OPENING = 20;       // the loop's span, between its two feet
 HANDLE_TUBE = 3;                // half donut tube radius
-HANDLE_FOOT_D = 9;              // pad where the loop lands on the face
+HANDLE_FOOT_D = 8;              // pad where the loop lands on the face
 HANDLE_FOOT_T = 2;
 HANDLE_BITE = 0.6;              // how far the feet sink into the face
 HANDLE_KNOB_D = 16;

@@ -84,7 +84,7 @@ pcb_mounts = [[12, 12], [138, 12], [12, 60, 10], [138, 60, 10]];
 
 Keep cut-outs clear of the handles: a handle sits `HANDLE_INSET` in from its
 edge and half way up the face, and blocks a band around that point — roughly
-+/- 5 mm across and +/- 17 mm up and down — and there is no guard against the two
++/- 4 mm across and +/- 14 mm up and down — and there is no guard against the two
 colliding.
 
 `tray()` also takes those two lists and the two handle settings as arguments, `cutouts`, `mounts`,
@@ -100,8 +100,8 @@ That is how a downstream project keeps its build data in its own repo: define th
 them over, and the library stays free of any one build's numbers.
 
 Size the keep-out to the handle you picked: a knob is ~16 mm across, a loop spans
-`HANDLE_LOOP_OPENING` plus its feet (~33 mm) up and down the face and stands further off
-it, so the band a cut-out has to avoid is taller with a loop than the `+/- 17 mm` above
+`HANDLE_LOOP_OPENING` plus its feet (28 mm) up and down the face and stands further off
+it, so the band a cut-out has to avoid is taller with a loop than the `+/- 14 mm` above
 suggests.
 
 ## Examples
@@ -148,6 +148,8 @@ sizes together — `examples/module-pair-1u-back.png` shows the same pair at 1U,
 | `module_units = 1`: a shallow tray, but `tray_depth` still sets how far back it reaches | All three wall styles set to `"slits"` |
 | ![1U patch panel tray](examples/tray-1u-patch.png) | ![1U tray with cable slots](examples/tray-1u-slots.png) |
 | A patch panel front: four ethernet openings and an LED, with solid walls and PCB mounts behind | Three stadium openings, from the optional sixth cut-out value that rounds a rectangle's corners |
+| ![1U tray with loop handles](examples/tray-1u-loop.png) | ![The same 1U tray in its module](examples/assembly-1u-loop.png) |
+| `handle_sides = "both"`: the upright loop is 28 mm tall, so it sits in the 33 mm face with 2.6 mm to spare top and bottom | The same tray slid into its module, the handle clearing the opening |
 
 ![Tray with cut-outs, mounts and handles](examples/tray-fitted.png)
 
