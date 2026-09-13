@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 no1ookpass
+//
 // Ashrack common - shared rack standards, fit dimensions and styling.
 //
 // Included by the front panel (ashrack-panel.scad) and by the tray that slides

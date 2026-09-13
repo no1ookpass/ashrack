@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 no1ookpass
+//
 // Ashrack tray - the drawer that slides into a module's tray slot.
 //
 // Front and floor are always solid. The side walls, back wall and top can each be

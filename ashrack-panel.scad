@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 no1ookpass
+//
 // Ashrack panel - the front of one half of the rack.
 //
 // Panel, mounting ear with the rack screw holes, the skeleton frame a tray

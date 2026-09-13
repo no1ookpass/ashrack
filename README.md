@@ -11,6 +11,7 @@ slides into it, so the tray can be built to suit whatever goes inside.
 | `ashrack-panel.scad` | The front module: panel, mounting ear with the rack screw holes, the skeleton frame that holds a tray, and the joiner tabs |
 | `ashrack-tray.scad` | The tray that slides into a module: front face with cut-outs, floor with PCB mounts, styled walls, and an optional removable top |
 | `ashrack-common.scad` | Shared rack standards, material and fit dimensions. Included by both parts, so a tray cannot drift out of fit with its module |
+| `LICENSE` | MIT, so use it, change it and sell it. The only condition is that the notice travels with the files |
 
 Open either part in OpenSCAD and use the Customizer panel; everything you can
 change is listed there. The two parts are separate files, but they include the
@@ -253,3 +254,14 @@ openscad -o back.png --camera=0,0,0,58,0,208,0 --projection=p examples/pair-asse
   that OpenSCAD 2021.01's `for` loop needs `=`, not `in`.
 - Every cut-out and mount is bounds checked: an out of range entry fails the
   build with a message rather than printing a broken part.
+
+## Licence
+
+MIT — see [`LICENSE`](LICENSE). Use it, change it, print it, sell it, put it in a
+product. There is no fee and no permission to ask for, and nothing obliges you to
+credit anyone in your own docs or on the part; the one condition is that the
+copyright notice and the licence text travel with the files.
+
+That covers the design files and the code. What you print from them is yours.
+
+Built something with ashrack? A link back is welcome, not required.
